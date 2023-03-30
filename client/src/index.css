@@ -1,0 +1,52 @@
+
+
+
+
+.Apps header {
+  background-color: #007bff;
+  padding: 16px;
+}
+
+.Apps nav ul {
+  list-style: none;
+  display: flex;
+  justify-content: space-around;
+}
+
+.Apps nav li {
+  display: inline;
+}
+
+.Apps nav a {
+  color: #fff;
+  text-decoration: none;
+  padding: 8px 16px;
+}
+
+.Apps nav a:hover {
+  background-color: #0056b3;
+}
+
+.Apps .active {
+  background-color: #0056b3;
+}
+
+
+
+::-webkit-scrollbar {
+  width: 16px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #4e54c8;
+  
+}
+.Home ::-webkit-scrollbar-track {
+  background-color: #4e54c800;
+  
+}
+::-webkit-scrollbar-thumb {
+  background-color: #5b60c3;
+  border-radius: 100px;
+}
+

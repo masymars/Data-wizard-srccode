@@ -41,7 +41,22 @@ class Apriori(object):
                 frequent_items.append((itemset,support))
 
         return frequent_items
+    def calsup(self, candidate,dataset):
 
+        item_counts = 0
+        for transaction in dataset:
+                if candidate.issubset(transaction):
+                    if  item_counts == 0:
+                        item_counts = 1
+                    else:
+                        item_counts += 1
+
+        sup =  item_counts/ len(dataset)
+        
+       
+
+        return sup
+    #########appriori##############            
     def generate_candidates( self, frequent_items, k):
 
         candidates = set()
@@ -54,6 +69,9 @@ class Apriori(object):
                 if len(union) == k + 1:
                     candidates.add(union)
         return candidates
+ 
+
+
 
     def apriori(self , dataset, min_support):
 
@@ -74,7 +92,6 @@ class Apriori(object):
             k += 1
 
         return frequent_itemsets
-
 
 
         
@@ -103,7 +120,7 @@ class Apriori(object):
         value = priority[d[1]].replace(',', '')
         priority
         if value:
-             p = S * (int(value) / math.factorial(len(priority)))
+             p = S * float(value)
         else:
             print("Error: Empty value encountered.")
         Sum += p
@@ -113,37 +130,39 @@ class Apriori(object):
      return Min_threshold
 
 
-    def generate_rules(self , frequent_itemsets, min_confidence):
+    def generate_rules(self , frequent_itemsets,dataset, min_confidence,num_transactions):
         rules = []
-        num_transactions = sum([itemset[1] for itemset in frequent_itemsets])
+        
 
         for itemset in frequent_itemsets:
             size = len(itemset[0])
+            print(size)
+            print(itemset[0])
+            print(itemset)
             if size > 1:
                 for i in range(1, size):
                     for antecedent in combinations(itemset[0], i):
                         antecedent = frozenset(antecedent)
                         consequent = itemset[0].difference(antecedent)
                         consequent = frozenset(consequent)
-
-                        support_antecedent = 0
-                        support_consequent = 0
-                        for row in frequent_itemsets:
-                            if antecedent == row[0]:
-                                support_antecedent = row[1]
-                            if consequent == row[0]:
-                                support_consequent = row[1]
-
+                        print(antecedent)
+                        print(consequent)
+                        
+                        support_antecedent = self.calsup(antecedent,dataset)
+                        support_consequent = self.calsup(consequent,dataset)
+                        
+                        print(support_antecedent)
+                        print(support_consequent)
                         confidence = itemset[1] / support_antecedent
                         if confidence >= min_confidence:
-                            lift = (confidence * num_transactions) / support_consequent
+                            lift = (itemset[1] ) / (support_consequent*support_antecedent)
                             leverage = itemset[1] - (support_antecedent * support_consequent / num_transactions)
 
                             if confidence == 1:
                                 conviction = float('inf')
                             else:
                                 conviction = (1 - support_consequent / num_transactions) / (1 - confidence)
-
+                            print(confidence)
                             rules.append((antecedent, consequent, itemset[1], confidence, lift, leverage, conviction))
 
         return rules

@@ -7,10 +7,15 @@ import jsonpickle
 
 from flask_cors import CORS, cross_origin
 from appriori import Apriori
+from close import Close
+from appriori_red import Apriori_reduse
+
+
 import json
 import joblib
 import csv
 import pandas as pd
+
 
 import numpy as np
 
@@ -18,6 +23,8 @@ import numpy as np
 
 itemsetserver = []
 
+dataset = []
+lendataset = 0
 # Initializing flask app
 app = Flask(__name__)
 CORS(app, support_credentials=True)
@@ -118,6 +125,8 @@ def get_minsup():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     global itemsetserver
+    global dataset
+    global lendataset
     if request.method == 'POST':
         if 'file' not in request.files:
             return 'No file part', 400
@@ -161,9 +170,10 @@ def upload_file():
             minsup = float(request.form.get("minsup", 0.1))  # Get minsup value
 
             objApriori = Apriori()
-
+            lendataset = len(transListSet)
             freq_items2 = objApriori.apriori(transListSet, minsup) 
             itemsetserver = freq_items2
+            dataset = transListSet
             print(freq_items2)
             
             json_data = jsonpickle.encode(freq_items2)
@@ -174,6 +184,147 @@ def upload_file():
     {
         "itemset": list(itemset_support["py/tuple"][0]["py/reduce"][1]["py/tuple"][0])  ,
         "support": itemset_support["py/tuple"][1],
+    }
+    for itemset_support in json_data
+             ]
+            print("/////////////////////")
+            print(cleaned_data)
+            return jsonify(cleaned_data)
+
+
+@app.route('/upload2', methods=['POST'])
+def upload_file2():
+    global itemsetserver
+    global dataset
+    global lendataset
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            return 'No file part', 400
+
+        file = request.files['file']
+
+        if file.filename == '':
+            return 'No selected file', 400
+
+        if file:
+            # Save the file in the specified folder
+            
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            file.save(file_path)
+
+            print(file)
+            df = []
+            try :
+               if file.filename.endswith(".xlsx") :
+                df = pd.read_excel(file_path, low_memory=False)
+               else :
+                df = pd.read_csv(file_path, low_memory=False)
+            except:
+              print("Error")
+
+            transListSet = []
+           
+            print(df)
+            df = df.where(pd.notnull(df), None)
+            df = df.dropna()
+            
+
+        
+
+
+            for index, row in df.iterrows():
+
+
+                 transListSet.append(set(row))
+
+            minsup = float(request.form.get("minsup", 0.1))  # Get minsup value
+
+            objClose = Close()
+            lendataset = len(transListSet)
+            freq_items2 ,closers= objClose.Close(transListSet, minsup) 
+            itemsetserver = closers
+            dataset = transListSet
+            print(closers)
+            
+            json_data = jsonpickle.encode(freq_items2)
+            json_data = json.loads(json_data)  
+
+
+            cleaned_data = [
+      {
+        "itemset": list(itemset_support["py/tuple"][0]["py/reduce"][1]["py/tuple"][0])  ,
+        "support": itemset_support["py/tuple"][1],
+        "closer": list(itemset_support["py/tuple"][2]["py/set"]),
+    }
+    for itemset_support in json_data
+             ]
+            print("/////////////////////")
+            print(cleaned_data)
+            return jsonify(cleaned_data)
+
+
+@app.route('/upload3', methods=['POST'])
+def upload_file3():
+    global itemsetserver
+    global dataset
+    global lendataset
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            return 'No file part', 400
+
+        file = request.files['file']
+
+        if file.filename == '':
+            return 'No selected file', 400
+
+        if file:
+            # Save the file in the specified folder
+            
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            file.save(file_path)
+
+            print(file)
+            df = []
+            try :
+               if file.filename.endswith(".xlsx") :
+                df = pd.read_excel(file_path, low_memory=False)
+               else :
+                df = pd.read_csv(file_path, low_memory=False)
+            except:
+              print("Error")
+
+            transListSet = []
+           
+            print(df)
+            df = df.where(pd.notnull(df), None)
+            df = df.dropna()
+            
+
+        
+
+
+            for index, row in df.iterrows():
+
+
+                 transListSet.append(set(row))
+
+            minsup = float(request.form.get("minsup", 0.1))  # Get minsup value
+
+            objappred = Apriori_reduse()
+            lendataset = len(transListSet)
+            freq_items2 = objappred.apriori_reduse(transListSet, minsup) 
+            itemsetserver = freq_items2
+            dataset = transListSet
+            
+            
+            json_data = jsonpickle.encode(freq_items2)
+            json_data = json.loads(json_data)  
+
+
+            cleaned_data = [
+      {
+        "itemset": list(itemset_support["py/tuple"][0]["py/reduce"][1]["py/tuple"][0])  ,
+        "support": itemset_support["py/tuple"][1]
     }
     for itemset_support in json_data
              ]
@@ -250,13 +401,15 @@ def predict():
 @app.route('/get_rules', methods=['POST'])
 def get_rules():
     global itemsetserver
+    global lendataset
+    global dataset
     data = request.json
     num_rules = data['num_rules']
     confidence = data['confidence']
-    print(itemsetserver)
+    
     objApriori = Apriori()
-    rules = objApriori.generate_rules(itemsetserver, confidence)
-    print(rules)
+    rules = objApriori.generate_rules(itemsetserver,dataset, confidence,lendataset)
+   
     cleaned_data = []
     sorted_rules = sorted(rules, key=lambda rule: rule[3], reverse=True)
 
@@ -271,14 +424,14 @@ def get_rules():
         leverage = str(round(float(row[5]), 3))
         conviction = str(round(float(row[6]), 3))
 
-        confidence = str(round(float(row[3]), 3) )
+        confidence = str(round(float(row[2]), 3) )
         cleaned_data.append({
         "antecedents": antecedents,
         "consequents": consequents,
-        "support": support,
         "lift": lift,
         "conviction": conviction,
-        "confidence": support,
+        "confidence": confidence,
+        "leverage" : leverage
         
     })
 
